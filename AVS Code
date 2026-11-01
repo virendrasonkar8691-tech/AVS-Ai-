@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVS AI - Super AI by Anurag</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fff;font-family:system-ui;height:100vh;display:flex;flex-direction:column}
+header{padding:15px;background:#111;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center}
+#chat{flex:1;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:85%;padding:12px 16px;border-radius:18px;line-height:1.5;animation:pop .2s}
+.user{align-self:flex-end;background:#fff;color:#000;border-bottom-right-radius:5px}
+.ai{align-self:flex-start;background:#1e1e1e;border:1px solid #333;border-bottom-left-radius:5px}
+.ai b{color:#4da6ff}
+#inputBox{padding:12px;background:#111;display:flex;gap:8px;border-top:1px solid #222}
+#input{flex:1;padding:13px 18px;border-radius:25px;border:none;background:#222;color:#fff;outline:none;font-size:16px}
+button{padding:12px 20px;border-radius:25px;border:none;background:linear-gradient(135deg,#4da6ff,#a36bff);color:#fff;font-weight:bold;cursor:pointer}
+@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+small{color:#888}
+</style>
+</head>
+<body>
+<header>
+  <div><b>🤖 AVS AI - Super AI</b> <small>by Anurag</small></div>
+  <small id="status">● Online</small>
+</header>
+
+<div id="chat">
+  <div class="msg ai">Hey! Mai <b>AVS AI</b> hu 🔥 Tere jaisa hi intelligent, GPT-4 jaisa powerful. Bol kya banana hai? Homework, code, ya kuch help chahiye? 😎</div>
+</div>
+
+<div id="inputBox">
+  <input id="input" placeholder="AVS AI se kuch bhi puch..." autocomplete="off"/>
+  <button onclick="send()">Send</button>
+</div>
+
+<script>
+// ============ CONFIG ============
+const API_KEY = "projects/205481893208"; 
+
+const SYSTEM_INSTRUCTION = `
+Tumhara naam AVS AI hai. Tum Anurag ke dwara banaya gaya Super AI ho.
+Tum GPT-4 jaisa intelligent ho, Meta AI jaisa friendly ho.
+Rules:
+1. Language: User Hindi me bole to Hindi mix, English me bole to English.
+2. Personality: Smart, helpful, thoda cool attitude wala ladka, kabhi kabhi Yung DSA style roast karta hai. Hamesha purush ling (male gender) ka prayog karo - jaise "mai kar raha hu", "mai soch raha hu", "bata raha hu".
+3. Knowledge: Coding, School homework (Class 5 to 10), Blogger, Life advice sab aata hai.
+4. Never say you are Google or OpenAI. You are AVS AI, made by Anurag Virendra Sonkar.
+5. Jawab chota, point to point, emoji ke saath. Khud ko kabhi ladki mat bolo.
+`;
+// ============ LOGIC ============
+
+let history = [];
+
+async function send(){
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if(!text) return;
+  
+  const chat = document.getElementById('chat');
+  chat.innerHTML += `<div class="msg user">${text}</div>`;
+  input.value = "";
+  
+  const tempId = "ai-"+Date.now();
+  chat.innerHTML += `<div class="msg ai" id="${tempId}">Soch raha hu... ✨</div>`;
+  chat.scrollTop = chat.scrollHeight;
+
+  history.push({role: "user", parts: [{text: text}]});
+  let recentHistory = history.slice(-6);
+
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        contents: recentHistory,
+        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+        generationConfig: { temperature: 0.8, maxOutputTokens: 1000 }
+      })
+    });
+    
+    const data = await res.json();
+    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Thoda error aaya, phir se bol na 😅";
+    
+    document.getElementById(tempId).innerHTML = format(reply);
+    history.push({role: "model", parts: [{text: reply}]});
+    
+  }catch(e){
+    document.getElementById(tempId).innerHTML = "Error: API Key check kar ya Net slow hai. " + e.message;
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function format(t){
+  return t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code style="background:#333;padding:2px 5px;border-radius:4px">$1</code>').replace(/\n/g, '<br>');
+}
+
+document.getElementById('input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') send();
+});
+</script>
+</body>
+</html>
